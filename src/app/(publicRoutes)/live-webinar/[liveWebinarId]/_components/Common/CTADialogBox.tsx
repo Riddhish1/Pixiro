@@ -28,21 +28,8 @@ const CTADialogBox = ({ open, onOpenChange, trigger, webinar, userId }: Props) =
       if (webinar.ctaType === "BOOK_A_CALL") {
         router.push(`/live-webinar/${webinar.id}/call?attendeeId=${userId}`)
       } else {
-        if (!webinar.priceId || !webinar.presenter.stripeConnectId) {
-          return toast.error("No priceId or stripeConnectId found")
-        }
-        const session = await createCheckoutLink(
-          webinar.priceId,
-          webinar.presenter.stripeConnectId,
-          userId,
-          webinar.id,
-          true,
-        )
-        if (!session.sessionUrl) {
-          throw new Error("Session ID not found in response")
-        }
-
-        window.open(session.sessionUrl, "_blank")
+        // Using hardcoded Stripe checkout URL
+        window.open('https://buy.stripe.com/test_fZu5kFgZgdyV4si08X1kA00', '_blank')
       }
     } catch (error) {
       console.error("Error creating checkout link", error)

@@ -51,14 +51,41 @@ const Participant = ({ apiKey, webinar, callId }: ParticipantProps) => {
           }`,
         };
 
-        const userToken = await getStreamIoToken(attendee);
-        setToken(userToken);
+        const tokenResponse = await getStreamIoToken(attendee);
+        
+        // Set up auto refresh
+        const refreshToken = async () => {
+          try {
+            const newTokenResponse = await getStreamIoToken(attendee);
+            setToken(newTokenResponse.token);
+            
+            // Reconnect client with new token
+            if (client) {
+              await client.disconnectUser();
+              await client.connectUser(user, newTokenResponse.token);
+            }
+          } catch (error) {
+            console.error("Error refreshing token:", error);
+            setConnectionStatus("failed");
+            setErrorMessage("Failed to refresh connection token");
+          }
+        };
 
-        const streamClient = new StreamVideoClient({
-          apiKey,
-          user,
-          token: userToken,
-        });
+        // Schedule token refresh 5 minutes before expiration
+        const scheduleRefresh = () => {
+          const refreshTime = (tokenResponse.expiresIn - 300) * 1000; // 5 minutes before expiration
+          setTimeout(() => {
+            refreshToken();
+            scheduleRefresh(); // Schedule next refresh
+          }, refreshTime);
+        };
+        
+        setToken(tokenResponse.token);
+        const streamClient = new StreamVideoClient(apiKey);
+        await streamClient.connectUser(user, tokenResponse.token);
+        
+        // Start the refresh cycle
+        scheduleRefresh();
 
         // Set up connection status listeners
         streamClient.on("connection.changed", (event) => {
@@ -69,7 +96,7 @@ const Participant = ({ apiKey, webinar, callId }: ParticipantProps) => {
           }
         });
 
-        await streamClient.connectUser(user, userToken);
+        await streamClient.connectUser(user, tokenResponse.token);
         const streamCall = streamClient.call("livestream", callId);
         await streamCall.join({ create: true });
 

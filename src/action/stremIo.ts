@@ -15,13 +15,17 @@ export const getStreamIoToken = async (attendee: Attendee | null) => {
     };
     await getStreamClient.upsertUsers([newUser]);
     // validity is optional (by default the token is valid for an hour)
-    const validity = 60 * 60 * 60;
+    // Set token validity to 55 minutes to allow for refresh before expiration
+    const validity = 55 * 60; // 3300 seconds = 55 minutes
     const token = getStreamClient.generateUserToken({
       user_id: attendee?.id || "guest",
       validity_in_seconds: validity,
     });
 
-    return token;
+    return {
+      token,
+      expiresIn: validity
+    };
   } catch (error) {
     console.error("Error generating Stream Io token:", error);
     throw new Error("Failed to generate Stream Io token");
@@ -80,13 +84,17 @@ export const getTokenForHost = async (
     };
     await getStreamClient.upsertUsers([newUser]);
 
-    const validity = 60 * 60 * 60;
+    // Set token validity to 55 minutes to allow for refresh before expiration
+    const validity = 55 * 60; // 3300 seconds = 55 minutes
     const token = getStreamClient.generateUserToken({
       user_id: userId,
       validity_in_seconds: validity,
     });
 
-    return token;
+    return {
+      token,
+      expiresIn: validity
+    };
   } catch (error) {
     console.error("Error generating Stream Io token:", error);
     throw new Error("Failed to generate Stream Io token");

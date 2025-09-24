@@ -4,13 +4,15 @@ let activeClient: StreamVideoClient | null = null;
 
 export const getStreamClient = (apiKey: string, token: string, userId: string) => {
   if (!activeClient) {
-    activeClient = new StreamVideoClient(apiKey, {
-      user: {
+    activeClient = new StreamVideoClient(apiKey);
+    
+    // Set up initial connection
+    activeClient.connectUser(
+      {
         id: userId,
-        name: userId,
       },
-      token,
-    });
+      token
+    );
   }
   return activeClient;
 };

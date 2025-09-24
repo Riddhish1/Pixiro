@@ -175,18 +175,20 @@ const AutoConnectCall = ({
       if (!webinar?.priceId || !webinar?.presenter?.stripeConnectId) {
         return toast.error("No priceId or stripeConnectId found");
       }
-      const session = await createCheckoutLink(
+      
+      const response = await createCheckoutLink(
         webinar.priceId,
         webinar?.presenter?.stripeConnectId,
         userId,
         webinar.id
-
       );
-      if (!session.sessionUrl) {
-        throw new Error("Session ID not found in response");
+
+      if (!response.success || !response.sessionUrl) {
+        toast.error(response.error || "Failed to create checkout session");
+        return;
       }
 
-      window.open(session.sessionUrl, "_blank");
+      window.open(response.sessionUrl, "_blank");
     } catch (error) {
       console.error("Error creating checkout link", error);
       toast.error("Failed to create checkout session. Please try again.");

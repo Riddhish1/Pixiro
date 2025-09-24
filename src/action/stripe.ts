@@ -79,6 +79,10 @@ export const createCheckoutLink = async (
       }
     );
 
+    if (!session.url) {
+      throw new Error("Failed to create checkout session URL");
+    }
+
     if (bookCall) {
       await changeAttendanceType(attendeeId, webinarId, "ADDED_TO_CART");
     }
@@ -91,9 +95,10 @@ export const createCheckoutLink = async (
   } catch (error) {
     console.log("Error creating checkout link", error);
     return {
-      error: "Error creating checkout link",
+      error: error instanceof Error ? error.message : "Error creating checkout link",
       status: 500,
       success: false,
+      sessionUrl: null
     };
   }
 };

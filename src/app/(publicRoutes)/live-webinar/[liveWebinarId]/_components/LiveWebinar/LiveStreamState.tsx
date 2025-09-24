@@ -24,11 +24,44 @@ const LiveStreamState = ({ apiKey, callId, webinar, user }: Props) => {
   useEffect(() => {
     const init = async () => {
       try {
-        const token = await getTokenForHost(
+        const tokenResponse = await getTokenForHost(
           webinar.presenterId,
           webinar.presenter.name,
           webinar.presenter.profileImage
         );
+        
+        // Set up auto refresh
+        const refreshToken = async () => {
+          try {
+            const newTokenResponse = await getTokenForHost(
+              webinar.presenterId,
+              webinar.presenter.name,
+              webinar.presenter.profileImage
+            );
+            setHostToken(newTokenResponse.token);
+            
+            // Reconnect client with new token
+            if (client) {
+              await client.disconnectUser();
+              await client.connectUser(
+                {
+                  id: webinar.presenterId,
+                  name: webinar.presenter.name,
+                  image: webinar.presenter.profileImage,
+                },
+                newTokenResponse.token
+              );
+            }
+          } catch (error) {
+            console.error("Error refreshing token:", error);
+          }
+        };
+
+        // Schedule token refresh 5 minutes before expiration
+        const scheduleRefresh = () => {
+          const refreshTime = (tokenResponse.expiresIn - 300) * 1000; // 5 minutes before expiration
+          setTimeout(refreshToken, refreshTime);
+        };
 
         const hostUser: StreamUser = {
           id: webinar.presenterId,
@@ -36,13 +69,14 @@ const LiveStreamState = ({ apiKey, callId, webinar, user }: Props) => {
           image: webinar.presenter.profileImage,
         };
 
-        const streamClient = new StreamVideoClient({
-          apiKey,
-          user: hostUser,
-          token,
-        });
-
-        setHostToken(token);
+        const streamClient = new StreamVideoClient(apiKey);
+        await streamClient.connectUser(hostUser, tokenResponse.token);
+        
+        setHostToken(tokenResponse.token);
+        setClient(streamClient);
+        
+        // Start the refresh cycle
+        scheduleRefresh();
         setClient(streamClient);
       } catch (error) {
         console.error("Error initializing stream client", error);
