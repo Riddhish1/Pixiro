@@ -29,14 +29,29 @@ const CustomLivestreamPlayer = ({
 
   useEffect(() => {
     if (!client) return;
+    
+    let isActive = true;
     const myCall = client.call(callType, callId);
-    setCall(myCall);
-    myCall.join({ create: true }).then(
-      () => setCall(myCall),
-      () => console.error("Failed to join the call"),
-    );
-    return () => {     
-      setCall(undefined);
+    
+    const initCall = async () => {
+      try {
+        await myCall.join({ create: true });
+        if (isActive) {
+          setCall(myCall);
+        }
+      } catch (error) {
+        console.error("Failed to join the call:", error);
+      }
+    };
+
+    initCall();
+
+    return () => {
+      isActive = false;
+      if (myCall) {
+        myCall.leave().catch(console.error);
+        setCall(undefined);
+      }
     };
   }, [client, callId, callType]);
 
